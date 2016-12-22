@@ -1,7 +1,7 @@
 # Import
 from time import sleep
 
-from platform.mecanum import MecanumPlatform
+from platform.mecanum import MecanumPlatform, PhidgetException
 from vswebsoket.server import *
 import json
 
@@ -41,12 +41,12 @@ if __name__ == "__main__":
 			if ord('A') in keys:
 				V[1] += 60
 			if ord('D') in keys:
-				V[1] -= 60	
+				V[1] -= 60
 
 			if ord('Q') in keys:
 				V[2] += 60
 			if ord('E') in keys:
-				V[2] -= 60	
+				V[2] -= 60
 			print V
 			V = normalize(V)
 			print V

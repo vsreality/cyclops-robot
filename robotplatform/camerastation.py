@@ -39,6 +39,11 @@ class CameraStation(object):
 		self.initServo(self.zservo, zvel)
 
 	def setPosition (self, yangle, zangle):
+		# Set new position for each servo
+		self.controller.setPosition(self.yservo, yangle)
+		self.controller.setPosition(self.zservo, zangle)
+
+	def setMoveToPosition (self, yangle, zangle):
 		# Calculate movement time for both servos
 		dy = abs(yangle - self.controller.getPosition(self.yservo))
 		dz = abs(zangle - self.controller.getPosition(self.zservo))
@@ -49,6 +54,10 @@ class CameraStation(object):
 		self.controller.setPosition(self.zservo, zangle)
 		# Wait until motors sets to desire positions
 		sleep(max(ty, tz))
+
+	def start(self):
+		self.controller.setEngaged(self.yservo, True)
+		self.controller.setEngaged(self.zservo, True)
 
 	def stop(self):
 		self.controller.setEngaged(self.yservo, False)

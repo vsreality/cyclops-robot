@@ -1,11 +1,19 @@
+
+import sys
+from time import sleep
 from pygamepad import Gamepad, UnpluggedError
 from robotplatform.mecanum import MecanumPlatform
 from robotplatform.camerastation import CameraStation
-from time import sleep
 from Phidgets.PhidgetException import PhidgetException
 
+# Servos
 Y_SERVO = 7
 Z_SERVO = 3
+
+# Operation modes
+NONE_MODE = 0
+DRIVE_MODE = 1
+CAMERA_MODE = 2
 
 def normalize (V):
 	sum = reduce(lambda x, y: abs(x)+abs(y), V)
@@ -24,30 +32,38 @@ class RobotGamepad(Gamepad):
 		self.camStation = cam_station
 		self.move_vec = [0.0, 0.0, 0.0]
 		self.speed = 20 # %
-		self.cameraMode = False
-		self.isRunning = True
+		self.operationMode = NONE_MODE
 
 	def onKeyDown(self, key):
 		print "onKeyDown: {}".format(key)
+		if key == "LB":
+			self.operationMode = CAMERA_MODE
 		if key == "RB":
-			self.cameraMode = True
+			self.operationMode = DRIVE_MODE
+		elif key == "MENU":
+			# Exit the script
+			sys.exit()
 
 	def onKeyUp(self, key):
 		print "onKeyUp: {}".format(key)
+		if key == "LB":
+			self.operationMode = NONE_MODE
 		if key == "RB":
-			self.cameraMode = False
+			self.operationMode = NONE_MODE
+			self.robot.stop()
 
 	def onLeftStickChange(self, position):
 		print "Left stick position: ({}, {})".format(position.x, position.y)
-		self.move_vec[0] = position.y * self.speed
-		self.move_vec[2] = -position.x * self.speed
-		self.robot.move(self.move_vec)
+		if self.operationMode == DRIVE_MODE:
+			self.move_vec[0] = position.y * self.speed
+			self.move_vec[2] = -position.x * self.speed
+			self.robot.move(self.move_vec)
 
 	def onRightStickChange(self, position):
 		print "Right stick position: ({}, {})".format(position.x, position.y)
-		if self.cameraMode:
-			self.camStation.setPosition(90 + position.y*10, 90 + position.x*10)
-		else:
+		if self.operationMode == CAMERA_MODE:
+			self.camStation.setPosition(90 + position.y*15, 90 + position.x*15)
+		elif self.operationMode == DRIVE_MODE:
 			self.move_vec[1] = -position.x * self.speed
 			self.robot.move(self.move_vec)
 

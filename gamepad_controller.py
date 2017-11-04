@@ -1,5 +1,5 @@
 
-import sys
+import sys, os
 from time import sleep
 from pygamepad import Gamepad, UnpluggedError
 from robotplatform.mecanum import MecanumPlatform
@@ -38,16 +38,22 @@ class RobotGamepad(Gamepad):
 		print "onKeyDown: {}".format(key)
 		if key == "LB":
 			self.operationMode = CAMERA_MODE
+			self.camStation.start()
 		if key == "RB":
 			self.operationMode = DRIVE_MODE
+			self.camStation.stop()
 		elif key == "MENU":
 			# Exit the script
 			sys.exit()
+		elif key == "VIEW":
+			# Restart the script
+			os.execv(sys.executable, ['python'] + sys.argv)
 
 	def onKeyUp(self, key):
 		print "onKeyUp: {}".format(key)
 		if key == "LB":
 			self.operationMode = NONE_MODE
+			self.camStation.stop()
 		if key == "RB":
 			self.operationMode = NONE_MODE
 			self.robot.stop()
@@ -86,6 +92,7 @@ if __name__ == "__main__":
 	while True:
 		try:
 			controller = RobotGamepad(robot, camStation)
+			camStation.start()
 			while True:
 				controller.update()
 		except UnpluggedError:

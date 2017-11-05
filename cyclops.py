@@ -1,13 +1,11 @@
 # Import
-from time import sleep
+import time
+import paho.mqtt.client as mqtt
+from options import broker
+from robotplatform.mecanum import MecanumPlatform
 
-from platform.mecanum import MecanumPlatform, PhidgetException
-from vswebsoket.server import *
-import json
-
-# Server parameters
-ip = '10.0.1.4'
-port = 8080
+hardware = False
+platform_velocity_topic = "robot/platform/velocity"
 
 def normalize (V):
 	sum = reduce(lambda x, y: abs(x)+abs(y), V)
@@ -19,37 +17,43 @@ def normalize (V):
 	else:
 		return V
 
+def on_connect(client, userdata, flags, rc):
+	print "Connected with result code " + str(rc)
+	client.subscribe(platform_velocity_topic)
+
+def on_message(client, userdata, msg):
+	if msg.topic == platform_velocity_topic:
+		try:
+			# Convert string vector to list
+			strVector = msg.payload.split(',')
+			if len(strVector) != 3:
+				return
+			velocity = [float(s) for s in strVector]
+		except:
+			return
+
+		velocity = normalize(velocity)
+		print velocity
+
+		# Apply new velocity
+		if hardware:
+			robot.move(velocity)
+
 # Main
 if __name__ == "__main__":
-	robot = MecanumPlatform ()
-	server = CWsServer('10.0.1.21', port)
-	client = server.WaitForClient ()
 	try:
-		while True:
-			msg = client.wait_message()
-			if msg.type == CLOSE_MESSAGE:
-				raise Exception()
-			msg = json.loads(msg.data)
-			keys = msg['keys']
-			#print keys
-			V = [0.0,0.0,0.0]
-			if ord('W') in keys:
-				V[0] += 60
-			if ord('S') in keys:
-				V[0] -= 60
+		print "Cyclops"
+		if hardware:
+			robot = MecanumPlatform()
+		client = mqtt.Client()
+		client.on_connect = on_connect
+		client.on_message = on_message
+		client.username_pw_set(broker["username"], broker["password"])
 
-			if ord('A') in keys:
-				V[1] += 60
-			if ord('D') in keys:
-				V[1] -= 60
+		client.connect(broker["host"], broker["port"], 60)
+		# Start publishing
+		client.loop_forever()
 
-			if ord('Q') in keys:
-				V[2] += 60
-			if ord('E') in keys:
-				V[2] -= 60
-			print V
-			V = normalize(V)
-			print V
-			robot.move(V)
-	except:
-		client.close()
+	except KeyboardInterrupt:
+		# Clean up
+		client.loop_stop()

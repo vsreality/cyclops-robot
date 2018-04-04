@@ -4,8 +4,9 @@ import paho.mqtt.client as mqtt
 from options import broker
 from robotplatform.mecanum import MecanumPlatform
 
-hardware = False
+hardware = True
 platform_velocity_topic = "robot/platform/velocity"
+velocity_p = [-1, -1, -1]
 
 def normalize (V):
 	sum = reduce(lambda x, y: abs(x)+abs(y), V)
@@ -22,6 +23,7 @@ def on_connect(client, userdata, flags, rc):
 	client.subscribe(platform_velocity_topic)
 
 def on_message(client, userdata, msg):
+	global velocity_p
 	if msg.topic == platform_velocity_topic:
 		try:
 			# Convert string vector to list
@@ -33,11 +35,12 @@ def on_message(client, userdata, msg):
 			return
 
 		velocity = normalize(velocity)
-		print velocity
-
-		# Apply new velocity
-		if hardware:
-			robot.move(velocity)
+		#print velocity
+		if velocity_p != velocity:
+			# Apply new velocity
+			if hardware:
+				robot.move(velocity)
+			velocity_p = velocity
 
 # Main
 if __name__ == "__main__":
